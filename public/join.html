@@ -1,0 +1,23 @@
+<html lang="en">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1" />
+ <title>Join UNO Game Lobby</title>
+ <link rel="stylesheet" href="css/style.css" />
+ <script src="/socket.io/socket.io.js"></script>
+ <script defer src="js/join.js"></script>
+</head>
+<body>
+ <div class="container">
+   <h1>Join Game</h1>
+   <label for="lobbyCode">Lobby Code:</label>
+   <input type="text" id="lobbyCode" placeholder="Enter lobby code" maxlength="6" />
+   <label for="playerName">Your Name:</label>
+   <input type="text" id="playerName" placeholder="Enter your nickname" maxlength="15" />
+   <button id="joinLobbyBtn">Join Lobby</button>
+   <p id="errorMsg" class="error"></p>
+ </div>
+</body>
+
+
+</html>

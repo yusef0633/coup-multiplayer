@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1" />
+ <title>Lobby - UNO Game</title>
+ <link rel="stylesheet" href="css/style.css" />
+ <script src="/socket.io/socket.io.js"></script>
+ <script defer src="js/lobby.js"></script>
+</head>
+<body>
+ <div class="container">
+   <h1>Lobby</h1>
+   <p>Lobby Code: <span id="lobbyCodeDisplay"></span></p>
+   <p>Players (<span id="playerCount">0</span>/10):</p>
+   <ul id="playerList"></ul>
+   <div id="hostControls" style="display:none;">
+     <button id="startGameBtn" disabled>Start Game</button>
+   </div>
+ </div>
+</body>
+</html>

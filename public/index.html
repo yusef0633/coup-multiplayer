@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coup Card Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      background-color: #0a3d62;
+      color: white;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    #lobby-container, #game-container {
+      background: #1e3799;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      max-width: 800px;
+      width: 90%;
+    }
+    
+    input {
+      padding: 12px;
+      margin: 8px;
+      border: 2px solid #3498db;
+      border-radius: 6px;
+      width: 220px;
+      font-size: 16px;
+      background: #ecf0f1;
+    }
+    
+    button {
+      padding: 12px 20px;
+      margin: 8px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+    
+    #create-lobby, #join-lobby {
+      background: #3498db;
+      color: white;
+    }
+    
+    #start-game {
+      background: #2ecc71;
+      color: white;
+      display: none;
+    }
+    
+    #players-list {
+      list-style: none;
+      padding: 0;
+    }
+    
+    #players-list li {
+      padding: 12px;
+      background: #3d566e;
+      margin: 8px 0;
+      border-radius: 6px;
+      font-size: 18px;
+    }
+    
+    /* Round Table Layout */
+    #game-table {
+      position: relative;
+      width: 800px;
+      height: 600px;
+      margin: 0 auto;
+      background: #0c2461;
+      border-radius: 50%;
+      box-shadow: 0 0 50px rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .table-center {
+      width: 200px;
+      height: 200px;
+      background: #1e3799;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+    }
+    
+    .player-position {
+      position: absolute;
+      width: 200px;
+      text-align: center;
+    }
+    
+    /* Position players around the table */
+    .player-position.top {
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    
+    .player-position.right {
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    
+    .player-position.bottom {
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    
+    .player-position.left {
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    
+    /* Player cards */
+    .player-cards {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+      perspective: 1000px;
+    }
+    
+    .player-card {
+      width: 60px;
+      height: 90px;
+      border-radius: 5px;
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-weight: bold;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+      transform-style: preserve-3d;
+      transition: transform 0.6s;
+      cursor: pointer;
+    }
+    
+    .player-card.flipped {
+      background: white;
+      color: #2c3e50;
+      transform: rotateY(180deg);
+    }
+    
+    /* Current player (bottom) */
+    .current-player {
+      width: 250px;
+    }
+    
+    .current-player-cards {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 15px;
+      perspective: 1000px;
+    }
+    
+    .current-card {
+      width: 80px;
+      height: 120px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-weight: bold;
+      font-size: 18px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      transform-style: preserve-3d;
+      transition: transform 0.6s;
+      cursor: pointer;
+      position: relative;
+    }
+    
+    .current-card.flipped {
+      background: white;
+      color: #2c3e50;
+      transform: rotateY(180deg);
+    }
+    
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 8px;
+    }
+    
+    .card-back {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: white;
+    }
+    
+    .card-front {
+      background: white;
+      color: #2c3e50;
+      transform: rotateY(180deg);
+      padding: 10px;
+      text-align: center;
+      font-size: 14px;
+    }
+    
+    /* Player info */
+    .player-info {
+      background: rgba(0,0,0,0.3);
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+    
+    .player-name {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .player-coins {
+      color: #f1c40f;
+    }
+    
+    /* Turn indicator */
+    #turn-indicator {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(46, 204, 113, 0.8);
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-weight: bold;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+      z-index: 10;
+    }
+    
+    /* Action buttons */
+    #action-buttons {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 10;
+    }
+    
+    .action-btn {
+      background: #9b59b6;
+      color: white;
+      min-width: 120px;
+    }
+    
+    .action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /* Animations */
+    @keyframes cardFlip {
+      0% { transform: rotateY(0); }
+      100% { transform: rotateY(180deg); }
+    }
+    
+    .flip-animation {
+      animation: cardFlip 0.6s ease-in-out forwards;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 900px) {
+      #game-table {
+        width: 600px;
+        height: 450px;
+      }
+    }
+    
+    @media (max-width: 650px) {
+      #game-table {
+        width: 400px;
+        height: 300px;
+      }
+      
+      .player-card {
+        width: 40px;
+        height: 60px;
+        font-size: 12px;
+      }
+      
+      .current-card {
+        width: 60px;
+        height: 90px;
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="lobby-container">
+    <h1>Coup Game Lobby</h1>
+    <div class="input-group">
+      <input id="player-name" placeholder="Your Name" autocomplete="off">
+      <input id="lobby-code" placeholder="Lobby Code" maxlength="4" style="text-transform: uppercase;" autocomplete="off">
+    </div>
+    <div class="button-group">
+      <button id="create-lobby">Create Lobby</button>
+      <button id="join-lobby">Join Lobby</button>
+    </div>
+    <p id="lobby-message"></p>
+    <div class="players-section">
+      <h3>Players in Lobby:</h3>
+      <ul id="players-list"></ul>
+    </div>
+    <button id="start-game" disabled>Start Game</button>
+  </div>
+
+  <div id="game-container" style="display:none;">
+    <div id="game-area">
+      <div id="turn-indicator"></div>
+      
+      <div id="game-table">
+        <div class="table-center"></div>
+        
+        <!-- Player positions -->
+        <div class="player-position top" id="player-top"></div>
+        <div class="player-position right" id="player-right"></div>
+        <div class="player-position left" id="player-left"></div>
+        
+        <!-- Current player (bottom) -->
+        <div class="player-position bottom current-player" id="player-bottom">
+          <div class="player-info">
+            <div class="player-name"><span id="player-name-display"></span></div>
+            <div class="player-coins">
+              <span class="coin-icon">🪙</span>
+              <span id="player-coins">0</span>
+            </div>
+          </div>
+          <div class="current-player-cards" id="hand"></div>
+        </div>
+      </div>
+      
+      <div id="action-buttons">
+        <button class="action-btn" id="income-btn">Income (+1)</button>
+        <button class="action-btn" id="foreign-aid-btn">Foreign Aid (+2)</button>
+        <button class="action-btn" id="coup-btn">Coup (-7)</button>
+        <button class="action-btn" id="tax-btn">Tax (Duke)</button>
+        <button class="action-btn" id="assassinate-btn">Assassinate (-3)</button>
+        <button class="action-btn" id="steal-btn">Steal (Captain)</button>
+        <button class="action-btn" id="exchange-btn">Exchange (Ambassador)</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
