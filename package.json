@@ -4,8 +4,8 @@
   "description": "Multiplayer UNO game lobby using Express and Socket.io",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
-  },
+  "start": "node server.js"
+},
   "author": "Yusef Elgamiel",
   "license": "MIT",
   "dependencies": {

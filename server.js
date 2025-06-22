@@ -88,33 +88,98 @@ io.on('connection', (socket) => {
     const lobby = lobbies[code];
     if (!lobby || !lobby.players.some(p => p.id === socket.id)) return;
 
+    // Only host can start the game
+    if (lobby.players[0].id !== socket.id) {
+      io.to(socket.id).emit('actionError', "Only the host can start the game!");
+      return;
+    }
+
     lobby.started = true;
-    lobby.deck = shuffle([...INITIAL_DECK]);
     
+    // Initialize game state
     lobby.players.forEach(player => {
-      player.hand = lobby.deck.splice(0, 2);
+      player.coins = 2;
+      player.hand = [];
       player.flipped = [false, false];
-      player.cardCount = 2;
-      io.to(player.id).emit('dealHand', {
-        cards: player.hand,
-        coins: player.coins,
-        flipped: player.flipped
-      });
+      player.cardCount = 0;
     });
 
+    // Initialize deck and discard pile
+    lobby.deck = [...INITIAL_DECK];
+    lobby.discardPile = [];
     lobby.turnIndex = 0;
-    const currentPlayer = lobby.players[lobby.turnIndex];
 
+    // Show empty table to all players
     io.to(code).emit('gameStarted', {
-      currentTurnPlayerId: currentPlayer.id,
-      currentTurnPlayerName: currentPlayer.name,
+      currentTurnPlayerId: null,
+      currentTurnPlayerName: '',
       players: lobby.players.map(p => ({
         id: p.id,
         name: p.name,
         coins: p.coins,
-        cardCount: p.cardCount
+        cardCount: 0
       }))
     });
+
+    // Shuffle deck after brief delay
+    setTimeout(() => {
+      lobby.deck = shuffle([...lobby.deck]);
+      io.to(code).emit('shufflingDeck');
+
+      // Deal cards after shuffle completes
+      setTimeout(() => {
+        const playersWithHands = lobby.players.map(player => {
+          const hand = lobby.deck.splice(0, 2);
+          return {
+            id: player.id,
+            name: player.name,
+            hand: hand,
+            coins: player.coins,
+            flipped: [false, false],
+            cardCount: 2
+          };
+        });
+
+        // Update actual player objects
+        lobby.players.forEach((player, index) => {
+          player.hand = playersWithHands[index].hand;
+          player.cardCount = 2;
+        });
+
+        // Animate dealing to all players
+        io.to(code).emit('dealingCards', {
+          players: playersWithHands,
+          deckCount: lobby.deck.length
+        });
+
+        // Start first turn after dealing completes
+        setTimeout(() => {
+          const currentPlayer = lobby.players[lobby.turnIndex];
+          
+          // Send individual hands to each player
+          lobby.players.forEach(player => {
+            io.to(player.id).emit('dealHand', {
+              cards: player.hand,
+              coins: player.coins,
+              flipped: player.flipped
+            });
+          });
+
+          // Begin first turn
+          io.to(code).emit('turnChanged', {
+            currentTurnPlayerId: currentPlayer.id,
+            currentTurnPlayerName: currentPlayer.name,
+            players: lobby.players.map(p => ({
+              id: p.id,
+              name: p.name,
+              coins: p.coins,
+              cardCount: p.cardCount
+            }))
+          });
+
+        }, lobby.players.length * 600 + 300); // Match with client dealing animation duration
+      }, 1500); // Shuffle animation duration
+    }, 500); // Initial delay
   });
 
   // Game Actions
@@ -128,7 +193,7 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Validate action
+    // Validate action requirements
     if (data.action === 'coup' && player.coins < 7) {
       io.to(socket.id).emit('actionError', "You need 7 coins to launch a coup!");
       return;
@@ -139,13 +204,11 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Force coup if player has 10+ coins
     if (player.coins >= 10 && data.action !== 'coup') {
       io.to(socket.id).emit('actionError', "You must launch a Coup when you have 10+ coins!");
       return;
     }
 
-    // Store current action
     lobby.currentAction = {
       playerId: socket.id,
       action: data.action,
@@ -166,7 +229,6 @@ io.on('connection', (socket) => {
         break;
         
       case 'foreign_aid':
-        // Requires potential block by Duke
         io.to(lobby.code).emit('actionAttempted', {
           playerId: socket.id,
           playerName: player.name,
@@ -185,7 +247,6 @@ io.on('connection', (socket) => {
         break;
         
       default:
-        // Other actions require target selection
         io.to(lobby.code).emit('actionAttempted', {
           playerId: socket.id,
           playerName: player.name,
@@ -219,7 +280,7 @@ io.on('connection', (socket) => {
       player.coins = 0;
       io.to(data.lobbyCode).emit('playerExiled', player.name);
       
-      // Check if game is over
+      // Check for game over
       const activePlayers = lobby.players.filter(p => p.cardCount > 0);
       if (activePlayers.length === 1) {
         io.to(data.lobbyCode).emit('gameOver', {
@@ -249,6 +310,7 @@ io.on('connection', (socket) => {
     });
   }
 
+  // Clean up on disconnect
   socket.on('disconnect', () => {
     for (const code in lobbies) {
       const lobby = lobbies[code];
@@ -257,6 +319,7 @@ io.on('connection', (socket) => {
         lobby.players.splice(idx, 1);
         io.to(code).emit('lobbyUpdate', lobby.players);
 
+        // Clean up empty lobbies
         if (lobby.players.length === 0) {
           delete lobbies[code];
         }
